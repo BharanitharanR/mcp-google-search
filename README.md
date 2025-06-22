@@ -11,6 +11,25 @@ googlesearch-python>=1.2.3
 
 ## Installation
 
+### Option 1: Direct Installation (Recommended for mcpo)
+
+1. Create the package structure:
+```bash
+mkdir google-search-mcp-server
+cd google-search-mcp-server
+```
+
+2. Save the server code as `google_search_server.py`
+3. Save the `pyproject.toml` file
+4. Create a simple `README.md`
+
+5. Install in development mode:
+```bash
+pip install -e .
+```
+
+### Option 2: Virtual Environment Installation
+
 1. Create a virtual environment:
 ```bash
 python -m venv mcp-google-search
@@ -22,12 +41,76 @@ source mcp-google-search/bin/activate  # On Windows: mcp-google-search\Scripts\a
 pip install -r requirements.txt
 ```
 
-## Usage
+## Usage with mcpo
 
-### Running the Server
+### Running with mcpo
+
+Once installed, you can run your server with mcpo like this:
 
 ```bash
-python google_search_server.py
+uvx mcpo --port 8000 -- google-search-mcp-server
+```
+
+Or if you want to specify a custom script:
+
+```bash
+uvx mcpo --port 8000 -- python google_search_server.py
+```
+
+### Alternative: Create a shell script wrapper
+
+Create a file called `google-search-mcp-server` (no extension):
+
+```bash
+#!/bin/bash
+python3 /path/to/your/google_search_server.py "$@"
+```
+
+Make it executable:
+```bash
+chmod +x google-search-mcp-server
+```
+
+Then use with mcpo:
+```bash
+uvx mcpo --port 8000 -- ./google-search-mcp-server
+```
+
+### Testing the Integration
+
+1. Start the server with mcpo:
+```bash
+uvx mcpo --port 8000 -- google-search-mcp-server
+```
+
+2. Test the connection:
+```bash
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {}
+  }'
+```
+
+3. Test a search:
+```bash
+curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/call",
+    "params": {
+      "name": "google_search",
+      "arguments": {
+        "query": "python programming",
+        "num_results": 5
+      }
+    }
+  }'
 ```
 
 ### Available Tools

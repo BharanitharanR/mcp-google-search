@@ -2,11 +2,14 @@
 """
 MCP Server for Google Search Integration
 Provides tools to search Google and fetch results for AI model consumption
+Compatible with mcpo (MCP Proxy)
 """
 
+import argparse
 import asyncio
 import json
 import logging
+import sys
 from typing import Any, Dict, List, Optional, Sequence
 from urllib.parse import urlparse
 
@@ -15,6 +18,8 @@ from mcp.server import Server, NotificationOptions
 from mcp.server.models import InitializationOptions
 import mcp.server.stdio
 import mcp.types as types
+import requests
+from bs4 import BeautifulSoup
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -51,18 +56,6 @@ async def handle_list_tools() -> list[types.Tool]:
                         "type": "string",
                         "description": "Language for search results (default: 'en')",
                         "default": "en",
-                    },
-                    "country": {
-                        "type": "string",
-                        "description": "Country code for search results (default: 'us')",
-                        "default": "us",
-                    },
-                    "pause": {
-                        "type": "number",
-                        "description": "Pause between requests in seconds (default: 2.0)",
-                        "minimum": 0.5,
-                        "maximum": 10.0,
-                        "default": 2.0,
                     }
                 },
                 "required": ["query"],
@@ -120,8 +113,6 @@ async def _handle_google_search(arguments: dict[str, Any]) -> list[types.TextCon
     query = arguments.get("query", "")
     num_results = arguments.get("num_results", 10)
     lang = arguments.get("lang", "en")
-    country = arguments.get("country", "us")
-    pause_time = arguments.get("pause", 2.0)
     
     if not query:
         return [types.TextContent(
@@ -137,10 +128,7 @@ async def _handle_google_search(arguments: dict[str, Any]) -> list[types.TextCon
         for url in search(
             query,
             num_results=num_results,
-            lang=lang,
-            country=country,
-            pause=pause_time,
-            user_agent="Mozilla/5.0 (compatible; MCP-GoogleSearch/1.0)"
+            lang=lang
         ):
             search_results.append({
                 "url": url,
@@ -187,9 +175,7 @@ async def _handle_google_search_detailed(arguments: dict[str, Any]) -> list[type
         search_results = []
         for i, url in enumerate(search(
             query,
-            num_results=num_results,
-            pause=2.0,
-            user_agent="Mozilla/5.0 (compatible; MCP-GoogleSearch/1.0)"
+            num_results=num_results
         )):
             result_data = {
                 "rank": i + 1,
@@ -212,8 +198,7 @@ async def _handle_google_search_detailed(arguments: dict[str, Any]) -> list[type
             "results": search_results,
             "metadata": {
                 "search_engine": "Google",
-                "language": "en",
-                "country": "us"
+                "language": "en"
             }
         }
         
@@ -229,8 +214,8 @@ async def _handle_google_search_detailed(arguments: dict[str, Any]) -> list[type
             text=f"Error executing detailed search: {str(e)}"
         )]
 
-async def main():
-    """Main entry point for the server."""
+async def run_server():
+    """Run the MCP server."""
     # Run the server using stdin/stdout streams
     async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
         await server.run(
@@ -246,5 +231,20 @@ async def main():
             ),
         )
 
+def main():
+    """Main entry point for the server."""
+    parser = argparse.ArgumentParser(description="Google Search MCP Server")
+    parser.add_argument("--version", action="version", version="google-search-mcp-server 0.1.0")
+    args = parser.parse_args()
+    
+    try:
+        asyncio.run(run_server())
+    except KeyboardInterrupt:
+        logger.info("Server interrupted by user")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"Server error: {e}")
+        sys.exit(1)
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
