@@ -1,246 +1,108 @@
-# MCP Google Search Server
+# Forgex Ingestor MCP Server
 
-## Requirements
+**MCP (Machine Control Protocol) server that forwards structured app creation payloads to the Forgex API.**
 
-Create a `requirements.txt` file:
+This server exposes a tool (`create_app_with_forgex`) via MCP that allows structured JSON payloads—describing applications—to be ingested by the Forgex backend.
 
-```txt
-mcp>=1.0.0
-googlesearch-python>=1.2.3
-```
+## 🧩 Features
 
-## Installation
+* MCP-compliant server using the `mcp` Python library
+* Exposes a tool to create apps from structured payloads
+* Forwards data to a configurable Forgex API endpoint
+* Logs activity and errors for monitoring and debugging
 
-### Option 1: Direct Installation (Recommended for mcpo)
+## 🚀 Getting Started
 
-1. Create the package structure:
+### Prerequisites
+
+* Python 3.9+
+* A running Forgex API endpoint (default: `http://localhost:8081/graph/process`)
+
+### Installation
+
+Clone the repo and install dependencies:
+
 ```bash
-mkdir google-search-mcp-server
-cd google-search-mcp-server
-```
-
-2. Save the server code as `google_search_server.py`
-3. Save the `pyproject.toml` file
-4. Create a simple `README.md`
-
-5. Install in development mode:
-```bash
-pip install -e .
-```
-
-### Option 2: Virtual Environment Installation
-
-1. Create a virtual environment:
-```bash
-python -m venv mcp-google-search
-source mcp-google-search/bin/activate  # On Windows: mcp-google-search\Scripts\activate
-```
-
-2. Install dependencies:
-```bash
+git clone https://github.com/your-org/forgex-ingestor-server.git
+cd forgex-ingestor-server
 pip install -r requirements.txt
 ```
 
-## Usage with mcpo
-
-### Running with mcpo
-
-Once installed, you can run your server with mcpo like this:
+### Running the Server
 
 ```bash
-uvx mcpo --port 8000 -- google-search-mcp-server
+python forgex_ingestor_server.py
 ```
 
-Or if you want to specify a custom script:
+To check version:
 
 ```bash
-uvx mcpo --port 8000 -- python google_search_server.py
+python forgex_ingestor_server.py --version
 ```
 
-### Alternative: Create a shell script wrapper
+## 🔌 Tool Interface
 
-Create a file called `google-search-mcp-server` (no extension):
+### Tool Name: `create_app_with_forgex`
 
-```bash
-#!/bin/bash
-python3 /path/to/your/google_search_server.py "$@"
-```
+#### Description
 
-Make it executable:
-```bash
-chmod +x google-search-mcp-server
-```
+Create an app using Forgex from a structured payload.
 
-Then use with mcpo:
-```bash
-uvx mcpo --port 8000 -- ./google-search-mcp-server
-```
+#### Input Schema
 
-### Testing the Integration
-
-1. Start the server with mcpo:
-```bash
-uvx mcpo --port 8000 -- google-search-mcp-server
-```
-
-2. Test the connection:
-```bash
-curl -X POST http://localhost:8000/mcp \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tools/list",
-    "params": {}
-  }'
-```
-
-3. Test a search:
-```bash
-curl -X POST http://localhost:8000/mcp \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 2,
-    "method": "tools/call",
-    "params": {
-      "name": "google_search",
-      "arguments": {
-        "query": "python programming",
-        "num_results": 5
-      }
-    }
-  }'
-```
-
-### Available Tools
-
-The server provides two tools:
-
-#### 1. `google_search`
-Basic Google search that returns URLs and domains.
-
-**Parameters:**
-- `query` (required): Search query string
-- `num_results` (optional): Number of results (1-20, default: 10)
-- `lang` (optional): Language code (default: "en")
-- `country` (optional): Country code (default: "us")
-- `pause` (optional): Pause between requests in seconds (0.5-10.0, default: 2.0)
-
-**Example Response:**
 ```json
 {
-  "query": "python programming",
-  "num_results": 3,
-  "results": [
-    {
-      "url": "https://www.python.org/",
-      "domain": "www.python.org"
-    },
-    {
-      "url": "https://docs.python.org/",
-      "domain": "docs.python.org"
+  "type": "object",
+  "properties": {
+    "app_spec": {
+      "type": "object",
+      "description": "The structured JSON payload representing the app (entities, edges, rules, etc.)"
     }
-  ]
+  },
+  "required": ["app_spec"]
 }
 ```
 
-#### 2. `google_search_detailed`
-Detailed search with additional metadata and snippets.
+### Example Payload
 
-**Parameters:**
-- `query` (required): Search query string
-- `num_results` (optional): Number of results (1-10, default: 5)
-- `include_snippets` (optional): Include content snippets (default: true)
-
-**Example Response:**
 ```json
 {
-  "query": "machine learning",
-  "timestamp": 1234567890.123,
-  "num_results": 2,
-  "results": [
-    {
-      "rank": 1,
-      "url": "https://example.com/ml",
-      "domain": "example.com",
-      "title": "Search Result 1",
-      "snippet": "Content preview for example.com..."
-    }
-  ],
-  "metadata": {
-    "search_engine": "Google",
-    "language": "en",
-    "country": "us"
+  "app_spec": {
+    "entities": [...],
+    "edges": [...],
+    "rules": [...]
   }
 }
 ```
 
-## Integration with AI Models
+## 🛠 Configuration
 
-The search results are returned as structured JSON that you can easily parse and feed to your AI model. Here's an example of how to use the results:
-
-```python
-import json
-
-# Parse the search results
-results = json.loads(search_response)
-
-# Extract URLs for further processing
-urls = [result["url"] for result in results["results"]]
-
-# Extract domains for filtering
-domains = [result["domain"] for result in results["results"]]
-
-# Feed to your AI model
-context = f"Search query: {results['query']}\n"
-context += f"Found {results['num_results']} results:\n"
-for i, result in enumerate(results["results"], 1):
-    context += f"{i}. {result['url']}\n"
-```
-
-## Configuration
-
-### Rate Limiting
-The server includes built-in rate limiting with configurable pause times between requests to respect Google's terms of service. The default pause is 2 seconds.
-
-### User Agent
-The server uses a custom user agent string to identify itself as an MCP Google Search server.
-
-### Error Handling
-The server includes comprehensive error handling and logging for debugging purposes.
-
-## Important Notes
-
-1. **Rate Limiting**: Google may rate limit or block requests if you make too many searches too quickly. The server includes pause functionality to help mitigate this.
-
-2. **Terms of Service**: Make sure your use complies with Google's Terms of Service.
-
-3. **IP Blocking**: If you make too many requests, Google might temporarily block your IP address.
-
-4. **Accuracy**: The `googlesearch-python` library provides basic search functionality. For more advanced features, consider using the official Google Search API.
-
-## Troubleshooting
-
-### Common Issues
-
-1. **HTTP 429 (Too Many Requests)**: Increase the pause time between requests
-2. **No results returned**: Check if your IP is blocked or if the query is valid
-3. **Import errors**: Ensure all dependencies are installed correctly
-
-### Debugging
-
-Enable debug logging by modifying the logging level:
+Update the `FORGEX_API_URL` in the script if your Forgex API endpoint differs:
 
 ```python
-logging.basicConfig(level=logging.DEBUG)
+FORGEX_API_URL = "http://localhost:8081/graph/process"
 ```
 
-## Extending the Server
+## 📝 Logging
 
-You can extend this server by adding more tools:
+Logs are written to stdout with the logger named `forgex-ingestor-server`.
 
-- Web scraping tool to fetch page content
-- URL validation tool
-- Search result filtering tool
-- Cache management for frequent queries
+## 📁 Project Structure
+
+```
+forgex_ingestor_server.py     # Main server implementation
+README.md                     # This file
+requirements.txt              # Python dependencies
+```
+
+## 🧪 Development & Debugging
+
+To debug requests/responses or extend the tool list, modify:
+
+* `handle_list_tools()` — to expose new tools
+* `_handle_forgex_create()` — to customize how payloads are processed
+
+## 🛡️ License
+
+MIT or your preferred license.
+
