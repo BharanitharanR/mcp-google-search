@@ -1,0 +1,2 @@
+[console_scripts]
+google-search-mcp-server = google_search_server:main
