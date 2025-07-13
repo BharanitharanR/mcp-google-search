@@ -4,11 +4,11 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "google-search-mcp-server"
+name = "forgex-mcp-server"
 version = "0.1.0"
-description = "MCP Server for Google Search Integration"
+description = "MCP Server for forgex Integration"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Bharanitharan R", email = "bharani3ran@gmail.com"}
 ]
 license = {text = "MIT"}
 readme = "README.md"
@@ -30,11 +30,11 @@ dependencies = [
 ]
 
 [project.scripts]
-google-search-mcp-server = "google_search_server:main"
+forgex-mcp-server = "forgex-mcp-server:main"
 
 [project.urls]
 Homepage = "https://github.com/yourusername/google-search-mcp-server"
 Repository = "https://github.com/yourusername/google-search-mcp-server"
 
 [tool.setuptools]
-py-modules = ["google_search_server"]
+py-modules = ["forgex-mcp-server"]
